@@ -1,0 +1,4 @@
+name=Register Notify
+description = "Test module for new user notification."
+package = Test
+core = 7.x

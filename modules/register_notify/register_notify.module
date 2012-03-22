@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * @file
+ * A module to notify admin of new folks that have registered.
+ * Created by: Drupalcon Denver Boston User Group BOF
+ */
+
+/**
+ * Implementation of hook_user_insert
+ * @see
+ *  http://api.drupal.org/api/drupal/modules%21user%21user.api.php/function/hook_user_insert/7
+ */
+function register_notify_user_insert(&$edit, $account, $category) {
+
+  // Get the name of the site from the variables table.
+  $site_name = variable_get('site_name', '');
+
+  // Get the site email and set a default.
+  $site_mail = variable_get('site_mail', 'admin@' . $site_name);
+
+  // Paramaters we will pass to hook_mail.
+  $params = array(
+    'sitename' => $site_name,
+    'name' => $account->name,
+    'userlink' => l('Click Here', 'user/' . $edit['uid']),
+  );
+
+  // Email you would like the notification sent to.
+  $to = 'scottalanhenry@gmail.com';
+
+  // Returns boolean so we know if the message was successful or not.
+  $sent = drupal_mail('register_notify', 'new_user', $to, user_preferred_language($account), $params);
+
+  // If the message was successful let us know.
+  if ($sent['result'] == TRUE) {
+    drupal_set_message(t('An email has been sent to the site admin notifying them of your new account.'));
+  }
+  // Otherwise we get an error.
+  else {
+    drupal_set_message(t('There was a problem sending your message and it was not sent.'), 'error');
+  }
+}
+
+/**
+ * Implementation of hook_mail
+ * @see
+ *  http://api.drupal.org/api/drupal/modules%21system%21system.api.php/function/hook_mail/7
+ */
+function register_notify_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'new_user':
+      $message['subject'] = t('User @name has created an account on @sitename', array('@name' => $params['name'], '@sitename' => $params['sitename']));
+      $message['body'][] = t('If you would like to view @name\'s information @userlink', array('@userlink' => $params['userlink']));
+
+      drupal_wrap_mail($message['body']);
+      break;
+  }
+}
