@@ -13,33 +13,15 @@
  */
 function register_notify_user_insert(&$edit, $account, $category) {
 
-  // Get the name of the site from the variables table.
-  $site_name = variable_get('site_name', '');
-
-  // Get the site email and set a default.
-  $site_mail = variable_get('site_mail', 'admin@' . $site_name);
-
   // Paramaters we will pass to hook_mail.
   $params = array(
-    'sitename' => $site_name,
-    'name' => $account->name,
-    'userlink' => l('Click Here', 'user/' . $edit['uid']),
+    'account' => $account,
+    'site_name' => variable_get('site_name', ''),
   );
 
-  // Email you would like the notification sent to.
   $to = 'scottalanhenry@gmail.com';
 
-  // Returns boolean so we know if the message was successful or not.
-  $sent = drupal_mail('register_notify', 'new_user', $to, user_preferred_language($account), $params);
-
-  // If the message was successful let us know.
-  if ($sent['result'] == TRUE) {
-    drupal_set_message(t('An email has been sent to the site admin notifying them of your new account.'));
-  }
-  // Otherwise we get an error.
-  else {
-    drupal_set_message(t('There was a problem sending your message and it was not sent.'), 'error');
-  }
+  drupal_mail('register_notify', 'new_user', $to, user_preferred_language($account), $params);
 }
 
 /**
@@ -48,12 +30,40 @@ function register_notify_user_insert(&$edit, $account, $category) {
  *  http://api.drupal.org/api/drupal/modules%21system%21system.api.php/function/hook_mail/7
  */
 function register_notify_mail($key, &$message, $params) {
+
+  $account = $params['account'];
+
+  $created = register_notify_time($account->created);
+
+  $variables = array(
+    '%site_name' => $params['site_name'],
+    '%username' => $account->name,
+    '%created' => $created,
+    '%url' => $params['site_name'] . '/user/' . $account->uid,
+
+  );
+
   switch ($key) {
     case 'new_user':
-      $message['subject'] = t('User @name has created an account on @sitename', array('@name' => $params['name'], '@sitename' => $params['sitename']));
-      $message['body'][] = t('If you would like to view @name\'s information @userlink', array('@userlink' => $params['userlink']));
-
-      drupal_wrap_mail($message['body']);
+      $message['subject'] = t('An account has been created on @sitename', array('@sitename' => $params['site_name']));
+      $message['body'][] = t('%username created an account %created. You can view %username\'s information at %url', $variables);
       break;
   }
 }
+
+/**
+   * A function that will return a formatted time the user created their account.
+   *
+   * @param $timestamp
+   *  The unix timestamp of when the user account was created.
+   *
+   * @return $date
+   *  A formatted date and time.
+   */
+  function register_notify_time($timestamp) {
+    $date = 'F, d Y';
+    $time = 'g:i:s T';
+    $format = $date . ' ' . $time;
+    $created = date($format, $timestamp);
+    return $created;
+  }
