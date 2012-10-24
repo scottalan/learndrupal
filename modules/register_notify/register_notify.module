@@ -19,7 +19,7 @@ function register_notify_user_insert(&$edit, $account, $category) {
     'site_name' => variable_get('site_name', ''),
   );
 
-  $to = 'scottalanhenry@gmail.com';
+  $to = 'my_email@gmail.com';
 
   drupal_mail('register_notify', 'new_user', $to, user_preferred_language($account), $params);
 }
